@@ -40,6 +40,10 @@ The model was trained on a balanced subset of the IMDB movie reviews dataset con
 - **Train Split:** 8,000 samples (80%)
 - **Test Split:** 2,000 samples (20%)
 
+## Evaluation Results
+
+- **Test Accuracy:** 0.6870 (68.7%)
+
 ## Training Parameters
 
 - **Loss Function:** Binary Cross Entropy Loss (`BCELoss`)
@@ -139,6 +143,10 @@ print(f"Confidence: {prediction:.4f}")
 模型在一个内容分布平衡的 IMDB 电影评论高质量子集（包含 10,000 条样本数据，即项目中的 `imdb_balanced_10k.csv`）上完成训练。
 - **训练集 (Train Split):** 8,000 条样本 (占比 80%)
 - **测试集 (Test Split):** 2,000 条样本 (占比 20%)
+
+## 评估结果 (Evaluation Results)
+
+- **测试集准确率 (Test Accuracy):** 0.6870 (68.7%)
 
 ## 训练参数
 
