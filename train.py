@@ -16,9 +16,9 @@ if not os.path.exists(data_path):
     exit(1)
 
 df = pd.read_csv(data_path)
-# 假设数据集有 "review" 和 "sentiment" 列
-X_text = df['review'].values
-y_labels = df['sentiment'].values
+
+X_text = df['text'].values
+y_labels = df['label'].values
 
 # 2. Preprocessing (TF-IDF)
 vectorizer = TfidfVectorizer(max_features=5000)
