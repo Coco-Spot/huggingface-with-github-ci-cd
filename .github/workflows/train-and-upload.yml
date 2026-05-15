@@ -43,7 +43,7 @@ jobs:
           api.create_repo(repo_id, token=token, exist_ok=True)
 
           # 上传我们刚刚保存的三个文件
-          artifacts = ["sentiment_nn.pth", "tfidf_vectorizer.pkl", "label_encoder.pkl"]
+          artifacts = ["sentiment_nn.pth", "vocab.pkl", "label_encoder.pkl"]
           for filename in artifacts:
               if os.path.exists(filename):
                   api.upload_file(
