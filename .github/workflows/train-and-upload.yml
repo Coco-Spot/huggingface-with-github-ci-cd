@@ -25,7 +25,14 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Train model
-        run: python train.py
+        run: |
+          python train.py > train_output.log
+          cat train_output.log
+          
+          # Extract accuracy using grep/awk and append to GitHub Actions step summary
+          ACCURACY=$(grep "Test Accuracy" train_output.log | awk '{print $3}')
+          echo "##  Model Training Finished" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Accuracy:** $ACCURACY" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload to Hugging Face Hub
         env:

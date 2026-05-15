@@ -44,7 +44,8 @@ for word, vec in glove_dict.items():
 embedding_matrix = torch.tensor(np.array(embedding_matrix), dtype=torch.float32)
 
 print("Tokenizing texts...")
-MAX_LEN = 150
+# 优化1：增加截断长度。原有的 150 会切掉长评论中结尾的情感反转部分
+MAX_LEN = 300
 X_indices = []
 
 def tokenize(text):
@@ -82,21 +83,36 @@ class SentimentNN(nn.Module):
     def __init__(self, vocab_size, embed_dim, pretrained_weights):
         super(SentimentNN, self).__init__()
         self.embedding = nn.Embedding(vocab_size, embed_dim)
-        # Initialize embedding weighting with GloVe and freeze it
-        self.embedding.weight = nn.Parameter(pretrained_weights, requires_grad=False)
-        self.fc1 = nn.Linear(embed_dim, 64)
+        # 解冻词向量
+        self.embedding.weight = nn.Parameter(pretrained_weights, requires_grad=True)
+        
+        # 优化1：采用 Bi-LSTM 模型
+        hidden_dim = 128
+        self.lstm = nn.LSTM(embed_dim, hidden_dim, num_layers=2, 
+                            bidirectional=True, batch_first=True, dropout=0.5)
+        
+        # 优化2：将使用全局平均池化(Avg)和全局最大池化(Max)组合，因此输出特征尺寸为 hidden_dim * 4
+        self.fc1 = nn.Linear(hidden_dim * 4, 64)
         self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.5)
         self.fc2 = nn.Linear(64, 1)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         # x shape: [batch_size, max_len]
         embeds = self.embedding(x) # shape: [batch_size, max_len, embed_dim]
-        # Average pooling over the sequence length
-        out = embeds.mean(dim=1)   # shape: [batch_size, embed_dim]
         
-        out = self.fc1(out)
+        # lstm_out shape: [batch_size, max_len, hidden_dim * 2]
+        lstm_out, _ = self.lstm(embeds)
+        
+        # 优化3：同时捕捉“语气最强烈的关键词”(Max)与“整体句子的连贯大意”(Avg)
+        avg_pool = torch.mean(lstm_out, dim=1)
+        max_pool, _ = torch.max(lstm_out, dim=1)
+        hidden_cat = torch.cat((avg_pool, max_pool), dim=1)
+        
+        out = self.fc1(hidden_cat)
         out = self.relu(out)
+        out = self.dropout(out)
         out = self.fc2(out)
         out = self.sigmoid(out)
         return out
@@ -105,9 +121,11 @@ model = SentimentNN(len(vocab), embed_dim, embedding_matrix)
 
 # 4. Training
 criterion = nn.BCELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+# 优化4：加入小额正则化（Weight Decay）减缓它在训练集快速过拟合
+optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-4)
 
-epochs = 10
+# 增加轮数让它充分收敛
+epochs = 15
 print("Starting training...")
 for epoch in range(epochs):
     model.train()
