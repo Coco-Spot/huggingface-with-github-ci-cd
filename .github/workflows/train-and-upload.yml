@@ -1,0 +1,56 @@
+name: Train and Upload NN to Hugging Face
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  train-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # (可选) 从别的地方获取数据集，如果在仓库里就不用
+      # 假设你把 imdb_top_500.csv 一起放到根目录并 Push 上去了
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Train model
+        run: python train.py
+
+      - name: Upload to Hugging Face Hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python - <<'EOF'
+          import os
+          from huggingface_hub import HfApi
+
+          token = os.environ["HF_TOKEN"]
+          # 【注意】修改为你自己的 HF 用户名和项目名
+          repo_id = "Coco-Spot/my-simple-ml" 
+          api = HfApi()
+
+          api.create_repo(repo_id, token=token, exist_ok=True)
+
+          # 上传我们刚刚保存的三个文件
+          artifacts = ["sentiment_nn.pth", "tfidf_vectorizer.pkl", "label_encoder.pkl"]
+          for filename in artifacts:
+              if os.path.exists(filename):
+                  api.upload_file(
+                      path_or_fileobj=filename,
+                      path_in_repo=filename,
+                      repo_id=repo_id,
+                      token=token,
+                  )
+                  print(f"Uploaded {filename}")
+          EOF
